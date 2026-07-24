@@ -157,7 +157,12 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -382,6 +387,7 @@ async def list_orders(db: AsyncSession = Depends(get_db)):
         .options(
             selectinload(Order.table),
             selectinload(Order.items).selectinload(OrderItem.menu_item).selectinload(MenuItem.category),
+            selectinload(Order.items).selectinload(OrderItem.menu_item).selectinload(MenuItem.inventory),
             selectinload(Order.payments)
         )
         .order_by(Order.created_at.desc())

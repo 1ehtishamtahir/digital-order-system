@@ -13,6 +13,7 @@ async def get_order_details(db: AsyncSession, order_id: int) -> Order:
         .options(
             selectinload(Order.table),
             selectinload(Order.items).selectinload(OrderItem.menu_item).selectinload(MenuItem.category),
+            selectinload(Order.items).selectinload(OrderItem.menu_item).selectinload(MenuItem.inventory),
             selectinload(Order.payments)
         )
         .filter(Order.id == order_id)
