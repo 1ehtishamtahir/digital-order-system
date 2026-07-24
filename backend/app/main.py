@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db, engine
-from app.models import Role, User, Table, Category, MenuItem, Inventory, Order, Payment, Base, BusinessSettings
+from app.models import Role, User, Table, Category, MenuItem, Inventory, Order, OrderItem, Payment, Base, BusinessSettings
 from app.schemas import (
     UserCreate, UserResponse, Token, TableResponse, TableCreate,
     CategoryResponse, CategoryCreate, MenuItemResponse, MenuItemCreate, MenuItemUpdate,
