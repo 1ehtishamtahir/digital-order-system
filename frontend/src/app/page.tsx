@@ -401,9 +401,10 @@ export default function CustomerOrderingPage() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"}`}>
+    <div className={`min-h-screen transition-colors duration-300 animate-fade-in ${darkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"}`}>
       
       {/* Header bar */}
+
       <header className={`sticky top-0 z-40 backdrop-blur-md border-b transition-colors ${darkMode ? "bg-slate-950/80 border-slate-800" : "bg-white/80 border-slate-200"}`}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -467,7 +468,7 @@ export default function CustomerOrderingPage() {
 
         {/* STEP 1: WELCOME SCREEN */}
         {activeStep === "welcome" && (
-          <div className="max-w-md mx-auto my-12 text-center p-8 rounded-2xl border bg-gradient-to-b from-slate-900/40 to-slate-900/10 backdrop-blur border-slate-800/80 shadow-2xl">
+          <div className="max-w-md mx-auto my-12 text-center p-8 rounded-2xl border bg-gradient-to-b from-slate-900/40 to-slate-900/10 backdrop-blur border-slate-800/80 shadow-2xl animate-slide-up">
             <h2 className="text-3xl font-extrabold mb-2 tracking-tight">Welcome to {businessSettings?.name || "DineIn"}!</h2>
             {businessSettings?.address && <p className="text-xs text-slate-400 mb-2">{businessSettings.address}</p>}
             <p className="text-slate-400 mb-8 text-sm">Scan the QR code on your table to view our menu and order instantly, or select your table below to preview.</p>
@@ -570,7 +571,7 @@ export default function CustomerOrderingPage() {
                 .map(item => (
                   <div 
                     key={item.id}
-                    className={`group rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.01] ${darkMode ? "bg-slate-900/40 border-slate-800 hover:border-slate-700" : "bg-white border-slate-200"}`}
+                    className={`group rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-0.5 ${darkMode ? "bg-slate-900/40 border-slate-800 hover:border-slate-700" : "bg-white border-slate-200"}`}
                   >
                     <div className="p-5 flex flex-col justify-between h-full gap-4">
                       <div className="flex justify-between items-start gap-4">
@@ -638,7 +639,7 @@ export default function CustomerOrderingPage() {
           <div className="max-w-2xl mx-auto space-y-6">
             
             {/* Header / Info box */}
-            <div className={`p-6 rounded-2xl border text-center ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}>
+            <div className={`p-6 rounded-2xl border text-center animate-slide-up ${darkMode ? "bg-slate-900/40 border-slate-800" : "bg-white border-slate-200"}`}>
               <div className="flex justify-center mb-3">
                 <div className="p-3 bg-green-500/10 text-green-500 rounded-full animate-bounce">
                   <CheckCircle2 size={36} />
@@ -776,7 +777,7 @@ export default function CustomerOrderingPage() {
           />
           
           {/* Content */}
-          <div className={`relative w-full max-w-md h-full flex flex-col shadow-2xl border-l transition-transform ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+          <div className={`relative w-full max-w-md h-full flex flex-col shadow-2xl border-l transition-transform animate-slide-up ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
             
             <div className="p-4 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -874,7 +875,7 @@ export default function CustomerOrderingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsCheckoutOpen(false)} />
           
-          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-colors ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-colors animate-slide-up ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
             <h3 className="text-xl font-extrabold mb-4 tracking-tight">Checkout Order</h3>
 
             <div className="space-y-4">
@@ -962,7 +963,7 @@ export default function CustomerOrderingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedItemForModal(null)} />
           
-          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-colors ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
+          <div className={`relative w-full max-w-md rounded-2xl border p-6 shadow-2xl transition-colors animate-slide-up ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"}`}>
             <div className="flex justify-between items-start gap-4 mb-4">
               <div>
                 <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400">
