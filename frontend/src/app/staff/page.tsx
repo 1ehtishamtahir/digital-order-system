@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { ChefHat, Flame, CheckCircle2, Play, LogOut, RefreshCw, Clock, AlertTriangle } from "lucide-react";
+import { ChefHat, Flame, CheckCircle2, Play, LogOut, RefreshCw, Clock, AlertTriangle, Beer } from "lucide-react";
 
 interface OrderItem {
   id: number; name: string; qty: number; station: string; status: string;
@@ -47,30 +47,12 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
   });
 }
 
-const STATION_COLORS: Record<string, string> = {
-  kitchen: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  bar: "bg-blue-500/15 text-blue-400 border-blue-500/25",
-  tandoor: "bg-orange-500/15 text-orange-400 border-orange-500/25",
-};
-const STATUS_BADGE: Record<string, string> = {
-  pending: "bg-gray-500/15 text-gray-400 border-gray-500/20",
-  preparing: "bg-[#D1A63C]/15 text-[#D1A63C] border-[#D1A63C]/25 animate-pulse-soft",
-  ready: "bg-[#4CAF6D]/15 text-[#4CAF6D] border-[#4CAF6D]/25",
-  served: "bg-teal-500/15 text-teal-400 border-teal-500/25",
-};
-const STATUS_ORDER: Record<string, string> = {
-  placed: "border-l-[#4C9BD1]",
-  preparing: "border-l-[#D1A63C]",
-  ready: "border-l-[#4CAF6D]",
-  served: "border-l-teal-500",
-  paid: "border-l-indigo-500",
-};
-
 function LoginScreen({ onLogin }: { onLogin: (u: StaffUser) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setLoading(true);
     try {
@@ -80,30 +62,34 @@ function LoginScreen({ onLogin }: { onLogin: (u: StaffUser) => void }) {
       });
       if (!res.ok) { const d = await res.json(); setError(d.detail || "Login failed"); return; }
       const data = await res.json();
-      if (data.role !== "kitchen") { setError("Only kitchen staff can access this page"); return; }
+      if (!["kitchen", "bar", "tandoor"].includes(data.role)) { 
+        setError("Only station staff (kitchen, bar, tandoor) can access this page"); 
+        return; 
+      }
       saveAuth(data.access_token, { username: data.username, role: data.role });
       onLogin({ username: data.username, role: data.role });
     } catch { setError("Cannot connect to server"); } finally { setLoading(false); }
   };
+  
   return (
-    <div className="min-h-screen bg-[#15171B] flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-[#1F2229] rounded-2xl border border-[#282C34] p-8 shadow-2xl space-y-6">
+    <div className="min-h-screen bg-bg-page flex items-center justify-center p-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-bg-surface rounded border border-border p-8 shadow-md space-y-6">
         <div className="text-center">
-          <div className="w-14 h-14 mx-auto bg-gradient-to-tr from-[#C98A2E] to-rose-500 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-            <ChefHat size={26} className="text-white" />
+          <div className="w-12 h-12 mx-auto bg-brand-primary-tint rounded flex items-center justify-center border border-brand-primary/10 mb-3">
+            <ChefHat size={24} className="text-brand-primary" />
           </div>
-          <h1 className="text-xl font-bold text-[#EDEAE3]">Kitchen Station</h1>
-          <p className="text-sm text-[#8B8F98] mt-1">Staff login required</p>
+          <h1 className="font-bold text-lg text-text-primary">Ops Station HUD</h1>
+          <p className="text-xs text-text-secondary mt-1">Staff login required</p>
         </div>
-        {error && <div className="p-3 bg-[#D1495B]/10 border border-[#D1495B]/30 rounded-xl text-[#D1495B] text-xs font-semibold text-center">{error}</div>}
+        {error && <div className="p-2.5 bg-status-error/10 border border-status-error/20 rounded text-status-error text-xs font-semibold text-center">{error}</div>}
         <div className="space-y-4">
           <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)}
-            className="w-full p-3 bg-[#15171B] border border-[#282C34] rounded-xl focus:border-[#C98A2E] focus:outline-none text-[#EDEAE3] text-sm" required />
+            className="w-full p-2.5 bg-bg-page border border-border rounded focus:border-brand-primary focus:outline-none text-text-primary text-xs" required />
           <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-            className="w-full p-3 bg-[#15171B] border border-[#282C34] rounded-xl focus:border-[#C98A2E] focus:outline-none text-[#EDEAE3] text-sm" required />
+            className="w-full p-2.5 bg-bg-page border border-border rounded focus:border-brand-primary focus:outline-none text-text-primary text-xs" required />
         </div>
         <button type="submit" disabled={loading}
-          className="w-full py-3 bg-[#C98A2E] hover:bg-[#C98A2E]/90 text-white font-bold rounded-xl text-sm transition disabled:opacity-50">
+          className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold rounded text-xs font-mono uppercase tracking-wider transition disabled:opacity-50">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
@@ -124,7 +110,8 @@ export default function KitchenPage() {
 
   const connectWs = () => {
     socketRef.current?.close();
-    const ws = new WebSocket(`${WS_BASE}/station_kitchen`);
+    const stationName = user?.role || "kitchen";
+    const ws = new WebSocket(`${WS_BASE}/station_${stationName}`);
     socketRef.current = ws;
     ws.onopen = () => setWsConnected(true);
     ws.onmessage = (event) => {
@@ -163,143 +150,212 @@ export default function KitchenPage() {
     } catch { setError("Network error"); } finally { setLoading(null); }
   };
 
-  const kitchenOrders = orders.filter(o =>
+  const activeStation = user?.role || "kitchen";
+
+  const stationOrders = orders.filter(o =>
     o.status !== "paid" && o.status !== "cancelled" &&
-    o.items.some(i => i.status !== "served")
+    o.items.some(i => i.station === activeStation && i.status !== "served")
   );
 
-  const totalItems = kitchenOrders.reduce((s, o) => s + o.items.filter(i => i.status !== "served").length, 0);
-  const prepItems = kitchenOrders.reduce((s, o) => s + o.items.filter(i => i.status === "preparing").length, 0);
+  const totalItems = stationOrders.reduce((s, o) => s + o.items.filter(i => i.station === activeStation && i.status !== "served").length, 0);
+  const prepItems = stationOrders.reduce((s, o) => s + o.items.filter(i => i.station === activeStation && i.status === "preparing").length, 0);
 
   if (!user) return <LoginScreen onLogin={setUser} />;
 
+  // Plain status badges (solid background and dark text)
+  const getBadgeStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "pending":
+        return "bg-bg-surface-alt text-text-secondary border border-border";
+      case "preparing":
+        return "bg-amber-100 text-amber-800 border border-amber-200";
+      case "ready":
+      case "served":
+        return "bg-green-100 text-green-800 border border-green-200";
+      default:
+        return "bg-bg-surface-alt text-text-secondary border border-border";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#15171B] text-[#EDEAE3]">
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-[#15171B]/80 border-b border-[#282C34]">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-[#C98A2E] to-rose-500 rounded-xl text-white shadow-lg"><Flame size={22} /></div>
+    <div className="min-h-screen bg-bg-page text-text-primary font-ui flex">
+      
+      {/* Sidebar Shell */}
+      <aside className="w-56 bg-bg-surface border-r border-border flex flex-col justify-between select-none">
+        <div>
+          <div className="p-4 border-b border-border flex items-center gap-2">
+            <div className="p-1.5 bg-brand-primary text-white rounded">
+              <ChefHat size={16} />
+            </div>
             <div>
-              <h1 className="font-extrabold text-lg tracking-tight">Kitchen Station</h1>
-              <span className="text-xs font-bold text-[#C98A2E]">{user.username}</span>
+              <h2 className="font-bold text-xs uppercase tracking-wider text-text-primary leading-tight">Ops Dashboard</h2>
+              <span className="text-[10px] text-text-secondary font-mono">QSR Back-Office</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={fetchOrders}
-              className="p-2 rounded-lg border border-[#282C34] hover:bg-[#1F2229] text-[#8B8F98] transition"><RefreshCw size={16} /></button>
-            <button onClick={() => { clearAuth(); setUser(null); }}
-              className="p-2 rounded-lg border border-[#282C34] hover:bg-[#1F2229] text-[#8B8F98] transition"><LogOut size={16} /></button>
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 animate-fade-in">
-        {error && (
-          <div className="mb-4 p-3 bg-[#D1495B]/10 border border-[#D1495B]/30 rounded-xl text-[#D1495B] text-xs font-semibold flex items-center justify-between animate-slide-up">
-            <span>{error}</span>
-            <button onClick={() => setError("")} className="ml-2 hover:text-white">&times;</button>
-          </div>
-        )}
-
-        {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="p-3 rounded-xl border border-[#282C34] bg-[#1F2229]/40">
-            <span className="text-[10px] font-semibold uppercase text-[#8B8F98] tracking-wider">Pending Items</span>
-            <span className="text-2xl font-black mt-1 block text-[#4C9BD1]">{totalItems - prepItems}</span>
-          </div>
-          <div className="p-3 rounded-xl border border-[#282C34] bg-[#1F2229]/40">
-            <span className="text-[10px] font-semibold uppercase text-[#8B8F98] tracking-wider">In Progress</span>
-            <span className="text-2xl font-black mt-1 block text-[#D1A63C]">{prepItems}</span>
-          </div>
-          <div className="p-3 rounded-xl border border-[#282C34] bg-[#1F2229]/40">
-            <span className="text-[10px] font-semibold uppercase text-[#8B8F98] tracking-wider">Active Orders</span>
-            <span className="text-2xl font-black mt-1 block text-[#C98A2E]">{kitchenOrders.length}</span>
-          </div>
+          <nav className="p-3 space-y-1">
+            <div className="px-3 py-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Active role</div>
+            <div className="px-3 py-2 bg-brand-primary-tint text-brand-primary border-l-2 border-brand-primary rounded-r text-xs uppercase tracking-wider font-bold flex items-center gap-2">
+              <Flame size={14} />
+              <span>{activeStation} HUD</span>
+            </div>
+          </nav>
         </div>
 
-        {kitchenOrders.length === 0 && (
-          <div className="py-20 text-center text-[#8B8F98] animate-fade-in">
-            <CheckCircle2 size={56} className="mx-auto mb-4 opacity-30" />
-            <p className="font-bold text-base">Kitchen queue is clear</p>
-            <p className="text-xs mt-1 text-[#8B8F98]">New orders will appear here in real time</p>
+        <div className="p-4 border-t border-border flex items-center justify-between">
+          <div>
+            <span className="text-[10px] text-text-secondary block font-mono">Operator</span>
+            <span className="text-xs font-bold text-text-primary font-mono">{user.username}</span>
           </div>
-        )}
+          <button onClick={() => { clearAuth(); setUser(null); }}
+            className="p-1.5 rounded border border-border hover:bg-bg-surface-alt text-text-secondary hover:text-text-primary transition">
+            <LogOut size={14} />
+          </button>
+        </div>
+      </aside>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {kitchenOrders.map((order, idx) => {
-            const activeItems = order.items.filter(i => i.status !== "served");
-            if (activeItems.length === 0) return null;
-            return (
-              <div key={order.id}
-                className={`rounded-2xl border border-[#282C34] bg-gradient-to-b from-[#1F2229]/60 to-[#1F2229]/30 p-5 shadow-md hover:shadow-xl hover:border-[#282C34] transition-all duration-300 animate-slide-up border-l-4 ${STATUS_ORDER[order.status] || "border-l-[#282C34]"}`}
-                style={{ animationDelay: `${idx * 50}ms` }}>
-                {/* Order header */}
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C98A2E]/20 to-rose-500/20 border border-[#282C34] flex items-center justify-center">
-                      <span className="font-black text-sm text-[#C98A2E]">#{order.id}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm">Order #{order.id}</h4>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#C98A2E]/10 text-[#C98A2E] border border-[#C98A2E]/20">
-                        {order.table_label}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[#8B8F98]">
-                    <Clock size={10} />
-                    {new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </div>
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* Top Bar */}
+        <header className="h-14 bg-bg-surface border-b border-border px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="font-bold text-sm uppercase tracking-wider text-text-primary">
+              {activeStation} order board
+            </h1>
+            <span className="text-xs text-text-tertiary">|</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${wsConnected ? "bg-status-success" : "bg-status-error"}`} />
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
+                {wsConnected ? "live connected" : "reconnecting"}
+              </span>
+            </div>
+          </div>
+          <button onClick={fetchOrders}
+            className="p-2 border border-border hover:bg-bg-surface-alt rounded text-text-secondary hover:text-text-primary transition">
+            <RefreshCw size={14} />
+          </button>
+        </header>
 
-                {/* Items */}
-                <div className="space-y-2.5">
-                  {activeItems.map(item => (
-                    <div key={item.id} className="p-3 rounded-xl bg-[#15171B]/60 border border-[#282C34]/60 hover:border-[#282C34] transition">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-extrabold text-[#C98A2E] text-sm">{item.qty}x</span>
-                            <span className="font-bold text-sm truncate">{item.name}</span>
-                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${STATION_COLORS[item.station] || "bg-gray-500/15 text-gray-400 border-gray-500/20"}`}>
-                              {item.station}
-                            </span>
-                          </div>
-                          {item.modifiers && <p className="text-xs text-[#C98A2E]/80 font-semibold mt-1">[{item.modifiers}]</p>}
-                          {item.notes && <p className="text-xs text-[#8B8F98] italic mt-0.5 flex items-center gap-1"><AlertTriangle size={10} />"{item.notes}"</p>}
-                        </div>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${STATUS_BADGE[item.status] || "bg-gray-500/15 text-gray-400 border-gray-500/20"}`}>
-                          {item.status}
+        <main className="p-6 overflow-y-auto flex-1 max-w-7xl w-full mx-auto space-y-6 animate-fade-in">
+          {error && (
+            <div className="p-3 bg-status-error/10 border border-status-error/20 rounded text-status-error text-xs font-semibold flex items-center justify-between animate-slide-up">
+              <span>{error}</span>
+              <button onClick={() => setError("")} className="ml-2 hover:text-white">&times;</button>
+            </div>
+          )}
+
+          {/* KDS Stats overview */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded border border-border bg-bg-surface">
+              <span className="text-[10px] font-bold uppercase text-text-secondary tracking-wider block">Queued items</span>
+              <span className="text-lg font-mono font-bold mt-0.5 block text-text-primary">{totalItems - prepItems}</span>
+            </div>
+            <div className="p-3 rounded border border-border bg-bg-surface">
+              <span className="text-[10px] font-bold uppercase text-text-secondary tracking-wider block">In Progress</span>
+              <span className="text-lg font-mono font-bold mt-0.5 block text-status-warning">{prepItems}</span>
+            </div>
+            <div className="p-3 rounded border border-border bg-bg-surface">
+              <span className="text-[10px] font-bold uppercase text-text-secondary tracking-wider block">Tickets Active</span>
+              <span className="text-lg font-mono font-bold mt-0.5 block text-brand-primary">{stationOrders.length}</span>
+            </div>
+          </div>
+
+          {stationOrders.length === 0 && (
+            <div className="py-20 text-center text-text-tertiary">
+              <CheckCircle2 size={36} className="mx-auto mb-3 text-status-success opacity-80" />
+              <p className="font-bold text-xs uppercase tracking-wider text-text-primary">Kitchen queue is clear</p>
+              <p className="text-xs mt-1 text-text-secondary">New orders will appear here automatically.</p>
+            </div>
+          )}
+
+          {/* Tickets Column */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {stationOrders.map((order) => {
+              const stationItems = order.items.filter(i => i.station === activeStation && i.status !== "served");
+              if (stationItems.length === 0) return null;
+              
+              return (
+                <div key={order.id}
+                  className="rounded border border-border bg-bg-surface p-4 flex flex-col justify-between gap-4 shadow-sm"
+                >
+                  <div>
+                    {/* Header */}
+                    <div className="flex justify-between items-start pb-2.5 border-b border-border/80 mb-3">
+                      <div>
+                        <h4 className="font-mono font-bold text-xs text-text-primary">Order #{order.id}</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-bg-page border border-border text-text-secondary mt-1 inline-block">
+                          {order.table_label}
                         </span>
                       </div>
-                      <div className="flex justify-end gap-1.5">
-                        {item.status === "pending" && (
-                          <button onClick={() => handleItemStatus(item.id, "preparing")} disabled={loading === item.id}
-                            className="px-3 py-1.5 bg-[#D1A63C] hover:bg-[#D1A63C]/90 disabled:opacity-50 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition shadow-sm">
-                            <Play size={11} /> {loading === item.id ? "..." : "Start Prep"}
-                          </button>
-                        )}
-                        {item.status === "preparing" && (
-                          <button onClick={() => handleItemStatus(item.id, "ready")} disabled={loading === item.id}
-                            className="px-3 py-1.5 bg-[#4CAF6D] hover:bg-[#4CAF6D]/90 disabled:opacity-50 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition shadow-sm">
-                            <CheckCircle2 size={11} /> {loading === item.id ? "..." : "Mark Ready"}
-                          </button>
-                        )}
-                        {item.status === "ready" && (
-                          <button onClick={() => handleItemStatus(item.id, "served")} disabled={loading === item.id}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition shadow-sm">
-                            <CheckCircle2 size={11} /> {loading === item.id ? "..." : "Serve"}
-                          </button>
-                        )}
+                      <div className="flex items-center gap-1 text-[10px] font-mono text-text-secondary">
+                        <Clock size={10} />
+                        <span>{new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Items */}
+                    <div className="space-y-3">
+                      {stationItems.map(item => (
+                        <div key={item.id} className="p-3 bg-bg-page border border-border rounded flex flex-col gap-2.5">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="font-mono font-bold text-xs text-brand-primary">{item.qty}x</span>
+                                <span className="font-bold text-xs text-text-primary">{item.name}</span>
+                              </div>
+                              {item.modifiers && <p className="text-[10px] text-text-secondary mt-0.5">[{item.modifiers}]</p>}
+                              {item.notes && <p className="text-[10px] text-status-error italic mt-0.5">"{item.notes}"</p>}
+                            </div>
+                            <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase ${getBadgeStyle(item.status)}`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          
+                          {/* Large Touch Targets for Kitchen Staff (56px) */}
+                          <div className="flex">
+                            {item.status === "pending" && (
+                              <button 
+                                onClick={() => handleItemStatus(item.id, "preparing")} 
+                                disabled={loading === item.id}
+                                className="h-14 w-full bg-brand-primary hover:bg-brand-primary-dark disabled:bg-border text-white font-bold rounded text-xs font-mono uppercase flex items-center justify-center gap-1.5 transition"
+                              >
+                                <Play size={12} /> 
+                                <span>{loading === item.id ? "..." : "Start Cooking"}</span>
+                              </button>
+                            )}
+                            {item.status === "preparing" && (
+                              <button 
+                                onClick={() => handleItemStatus(item.id, "ready")} 
+                                disabled={loading === item.id}
+                                className="h-14 w-full bg-status-success hover:opacity-90 disabled:bg-border text-white font-bold rounded text-xs font-mono uppercase flex items-center justify-center gap-1.5 transition"
+                              >
+                                <CheckCircle2 size={12} /> 
+                                <span>{loading === item.id ? "..." : "Mark Ready"}</span>
+                              </button>
+                            )}
+                            {item.status === "ready" && (
+                              <button 
+                                onClick={() => handleItemStatus(item.id, "served")} 
+                                disabled={loading === item.id}
+                                className="h-14 w-full bg-status-neutral hover:opacity-90 disabled:bg-border text-white font-bold rounded text-xs font-mono uppercase flex items-center justify-center gap-1.5 transition"
+                              >
+                                <CheckCircle2 size={12} /> 
+                                <span>{loading === item.id ? "..." : "Mark Served"}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </main>
+              );
+            })}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
